@@ -21,14 +21,22 @@
 
 ## Доступ к Proxmox и контейнеру
 
-- Хост Proxmox: `ssh root@<PROXMOX_HOST_IP>`, web-UI `https://<PROXMOX_HOST_IP>:8006`, узел `OriginBase`.
-- Контейнер LXC 109 напрямую с Mac недоступен (приватная сеть). Заход — **через jump-host**:
+- **Хост Proxmox** (узел `OriginBase`, Selectel): `ssh root@<PROXMOX_HOST_IP>` — ключ
+  `selectel_origin_base`. Web-UI: `https://<PROXMOX_HOST_IP>:8006`.
+- **LXC 109** во внутренней сети (`10.10.10.9`) напрямую с Mac недоступен. Самый простой вход —
+  с хоста: `pct enter 109` или `pct exec 109 -- <cmd>`.
+- Вариант с **jump-host** (если нужен прямой ssh в контейнер): host-хоп идёт по
+  `selectel_origin_base`, хоп host→контейнер — по ключу контейнера (`fp-mk-key`):
   ```bash
   ssh -J root@<PROXMOX_HOST_IP> root@10.10.10.9
   ```
-  Ключ `fp-mk-key` должен быть в ssh-agent; для git-операций внутри контейнера заходить с `-A`
-  (agent forwarding), чтобы push/pull шли твоим ключом без хранения ключей на сервере.
-- С самого хоста Proxmox: `pct enter 109` или `pct exec 109 -- <cmd>`.
+- Для git внутри контейнера заходить с `-A` (agent forwarding), чтобы `push/pull` шли твоим
+  GitHub-ключом без хранения ключей на сервере.
+
+> ⚠️ **Telegram API недоступен с этого хоста.** С РФ/Selectel-хоста `api.telegram.org`
+> заблокирован — бот не сможет ходить в Telegram Bot API напрямую из LXC. Все исходящие к
+> Telegram делать асинхронно, с таймаутом, через внешний прокси / облачный сервис (не на этом
+> хосте). Это нужно учесть в архитектуре бота. Детали урока — в `private/proxmox-notes.md`.
 
 ## Параметры LXC 109
 
