@@ -21,7 +21,7 @@
 - Backend: **Go** (REST API + Telegram-бот, `go-telegram-bot-api`).
 - БД: **PostgreSQL** (отдельный Docker volume), миграции — goose / golang-migrate / atlas.
 - Frontend: SPA (React/Vue/Svelte).
-- Инфра: **Docker Compose** внутри **Proxmox LXC 109**, наружу через **Nginx Proxy Manager**.
+- Инфра: **Docker Compose** внутри **Proxmox LXC 107**, наружу через **Nginx Proxy Manager**.
 - Детали инфры и деплоя: `docs/infra.md`.
 
 ## 🔴 Правила работы (важно, соблюдать всегда)
@@ -53,10 +53,10 @@ family-planner/
 │   ├── architecture.md   # архитектурные решения (ADR), приоритет над spec.md
 │   └── infra.md          # инфраструктура и деплой (без секретов)
 └── private/              # В .gitignore — только локально, в git НЕ уходит
-    ├── fp-mk-key(.pub)   # SSH-ключ LXC 109
+    ├── fp-mk-key(.pub)   # SSH-ключ LXC 107
     ├── secrets.md        # реальные IP/пароли/ключи
     ├── tg-data.md        # bot token, allowlist, заметки по Telegram/n8n
-    └── proxmox-109-lxc.md# лог создания LXC 109 (+ proxmox-notes.md — уроки coinshop)
+    └── proxmox-107-lxc.md# лог создания LXC 107 (+ proxmox-notes.md — уроки coinshop)
 ```
 
 ## Git
@@ -65,15 +65,17 @@ family-planner/
 
 ## Доступ к серверу (кратко; детали и реальные значения — в private/)
 ```bash
-ssh -J root@<PROXMOX_HOST_IP> root@10.10.10.9   # LXC 109, family-planner
+ssh -J root@<PROXMOX_HOST_IP> root@10.10.10.9   # LXC 107, family-planner
 ```
 
 ## Текущий статус
 - [x] Папка связана с git-репо, секреты вынесены в `private/`, документация выжата.
 - [x] Архитектура зафиксирована (ADR-001: модель Telegram Mini App), ТЗ синхронизировано.
-- [x] LXC 109 создан (Ubuntu 24.04).
+- [x] LXC **107** создан (Ubuntu 24.04.4, privileged, nesting=1). ⚠️ Реальный CTID — **107**, не 109.
+- [x] Коммиты запушены в origin (rebase поверх `Initial commit` с GitHub; ветка `main` отслеживает `origin/main`).
+- [x] Инфра: фикс Docker-в-LXC (`107.conf` → `lxc.apparmor.profile: unconfined`) **применён**;
+      Docker **29.6.1** + Compose **v5.2.0** установлены, `docker run hello-world` — OK, сервис enabled+active.
 - [ ] Разработка переходит в **Claude Code** (код backend/frontend в репозитории).
-- [ ] Инфра: фикс Docker-в-LXC (`109.conf` → `lxc.apparmor.profile: unconfined`), установка Docker.
 - [ ] Backend: структура Go-проекта, схема БД, миграции, валидация initData, сессии.
 - [ ] Frontend: Mini App (SPA). Бот: кнопка-лаунчер в @BotFather. Уведомления через облачный n8n.
 - [ ] Деплой через NPM (домен → `10.10.10.9:<APP_PORT>`, Let's Encrypt).

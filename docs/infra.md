@@ -12,7 +12,7 @@
                                           ├─ NPM (Nginx Proxy Manager), CT, IP 10.10.10.2  ← TLS / Let's Encrypt
                                           │       проксирует домен → http://10.10.10.9:<APP_PORT>
                                           │
-                                          └─ LXC 109 «family-planner», IP 10.10.10.9
+                                          └─ LXC 107 «family-planner», IP 10.10.10.9
                                                   └─ Docker Compose: app (Go) + postgres
 ```
 
@@ -23,8 +23,8 @@
 
 - **Хост Proxmox** (узел `OriginBase`, Selectel): `ssh root@<PROXMOX_HOST_IP>` — ключ
   `selectel_origin_base`. Web-UI: `https://<PROXMOX_HOST_IP>:8006`.
-- **LXC 109** во внутренней сети (`10.10.10.9`) напрямую с Mac недоступен. Самый простой вход —
-  с хоста: `pct enter 109` или `pct exec 109 -- <cmd>`.
+- **LXC 107** во внутренней сети (`10.10.10.9`) напрямую с Mac недоступен. Самый простой вход —
+  с хоста: `pct enter 107` или `pct exec 107 -- <cmd>`.
 - Вариант с **jump-host** (если нужен прямой ssh в контейнер): host-хоп идёт по
   `selectel_origin_base`, хоп host→контейнер — по ключу контейнера (`fp-mk-key`):
   ```bash
@@ -38,29 +38,37 @@
 > Telegram делать асинхронно, с таймаутом, через внешний прокси / облачный сервис (не на этом
 > хосте). Это нужно учесть в архитектуре бота. Детали урока — в `private/proxmox-notes.md`.
 
-## Параметры LXC 109
+## Параметры LXC 107
 
-- Ubuntu 24.04 LTS, **privileged**, **nesting=1** (без nesting Docker в LXC не стартует).
+> ⚠️ Реальный CTID контейнера family-planner — **107** (community-scripts назначил следующий
+> свободный ID). В ранних заметках фигурировал «109» — это ошибка, везде читать 107.
+
+- Ubuntu 24.04.4 LTS, **privileged**, **nesting=1** (без nesting Docker в LXC не стартует).
 - Hostname `family-planner`, IP `10.10.10.9/24`, gw `10.10.10.1`, bridge `vmbr1`, static.
 - Создан через community-scripts (ProxmoxVE helper, `ct/ubuntu.sh`). Публичный SSH-ключ инжектирован при создании.
 - Создаётся пустой Ubuntu — Docker и приложение ставятся вручную (см. ниже).
 
-## ⚠️ Обязательный фикс: Docker внутри LXC
+## ⚠️ Обязательный фикс: Docker внутри LXC — ✅ ПРИМЕНЁН (107)
 
 Без него контейнеры не стартуют — runc падает на
 `open sysctl net.ipv4.ip_unprivileged_port_start: permission denied`.
-Решение — снять AppArmor для контейнера. На **хосте Proxmox** в `/etc/pve/lxc/109.conf` добавить:
+Решение — снять AppArmor для контейнера. На **хосте Proxmox** в `/etc/pve/lxc/107.conf` добавить:
 ```
 lxc.apparmor.profile: unconfined
 ```
-затем `pct stop 109 && pct start 109`. После этого `docker run hello-world` работает.
-(Сообщение про "overrides features:nesting" при старте — нормально.)
+затем `pct stop 107 && pct start 107`. После этого `docker run hello-world` работает.
+(Сообщение `explicitly configured lxc.apparmor.profile overrides ... features:nesting` при старте — нормально.)
 
-## Установка Docker в контейнере
+> ✅ **Сделано:** строка добавлена в `107.conf` (бэкап — `107.conf.bak` на хосте), контейнер
+> перезапущен, IP `10.10.10.9` сохранён. Та же строка работает на соседнем LXC 106 (coinshop).
+
+## Установка Docker в контейнере — ✅ СДЕЛАНО (107)
 ```bash
 curl -fsSL https://get.docker.com | sh
 docker --version && docker compose version
 ```
+> ✅ **Установлено в 107:** Docker **29.6.1**, Compose **v5.2.0**; `docker run hello-world` — OK;
+> сервис `docker` enabled + active.
 
 ## Reverse proxy (NPM)
 
@@ -77,7 +85,7 @@ Proxy Host в NPM (когда дойдём до публикации):
 - Backend: Go (Telegram-бот + REST API), Telegram Bot API через `go-telegram-bot-api`.
 - БД: PostgreSQL (отдельный Docker volume), миграции — goose/golang-migrate/atlas.
 - Frontend: SPA (React/Vue/Svelte), статика отдаётся через backend или отдельный контейнер.
-- Всё в Docker Compose внутри LXC 109; наружу — через NPM.
+- Всё в Docker Compose внутри LXC 107; наружу — через NPM.
 
 ## Деплой (черновик, детализируем при реализации)
 1. Зайти в контейнер через jump-host, поставить Docker + Compose.
