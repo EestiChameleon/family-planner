@@ -4,12 +4,18 @@
 
 ## Что это за проект
 Семейный планировщик для двух пользователей (муж и жена): общий список задач, календарь,
-встречи и напоминания. Три части:
-1. **Telegram-бот** — добавление/просмотр/редактирование задач и событий.
-2. **Веб-интерфейс** — то же самое через сайт (вход по одноразовой ссылке из бота).
-3. **Backend API + БД** — общее хранилище.
+встречи и напоминания.
 
-Полное ТЗ: `docs/spec.md`.
+**Архитектура (ADR-001, см. `docs/architecture.md`) — модель Telegram Mini App:**
+1. **Telegram-бот** — минимальный лаунчер: кнопка в @BotFather открывает Mini App. Без команд (MVP).
+2. **Frontend (Mini App, SPA)** — основной интерфейс, открывается внутри Telegram с нашего домена.
+   Сюда фокус разработки.
+3. **Backend (Go) + PostgreSQL** — REST API, авторизация через Telegram `initData` (валидация
+   HMAC локально, allowlist на двоих), сессии, общее семейное пространство.
+4. **Уведомления** — исходящие в Telegram через **облачный n8n** (с хоста `api.telegram.org`
+   заблокирован; см. `docs/infra.md`). Приём апдейтов в MVP не нужен.
+
+Документы: исходное ТЗ — `docs/spec.md` (часть решений пересмотрена), решения — `docs/architecture.md`.
 
 ## Стек (по ТЗ)
 - Backend: **Go** (REST API + Telegram-бот, `go-telegram-bot-api`).
@@ -40,16 +46,17 @@
 ## Структура репозитория
 ```
 family-planner/
-├── CLAUDE.md          # этот файл
+├── CLAUDE.md             # этот файл
 ├── .gitignore
 ├── docs/
-│   ├── spec.md        # ТЗ проекта
-│   └── infra.md       # инфраструктура и деплой (без секретов)
-└── private/           # В .gitignore — только локально, в git НЕ уходит
-    ├── fp-mk-key(.pub)
-    ├── secrets.md
-    ├── proxmox-109-lxc.md
-    └── proxmox-docs/  # архив заметок предыдущего проекта (coinshop)
+│   ├── spec.md           # исходное ТЗ (часть решений пересмотрена — см. architecture.md)
+│   ├── architecture.md   # архитектурные решения (ADR), приоритет над spec.md
+│   └── infra.md          # инфраструктура и деплой (без секретов)
+└── private/              # В .gitignore — только локально, в git НЕ уходит
+    ├── fp-mk-key(.pub)   # SSH-ключ LXC 109
+    ├── secrets.md        # реальные IP/пароли/ключи
+    ├── tg-data.md        # bot token, allowlist, заметки по Telegram/n8n
+    └── proxmox-109-lxc.md# лог создания LXC 109 (+ proxmox-notes.md — уроки coinshop)
 ```
 
 ## Git
@@ -63,6 +70,10 @@ ssh -J root@<PROXMOX_HOST_IP> root@10.10.10.9   # LXC 109, family-planner
 
 ## Текущий статус
 - [x] Папка связана с git-репо, секреты вынесены в `private/`, документация выжата.
-- [ ] LXC 109 создан (Ubuntu 24.04). Дальше: фикс Docker-в-LXC, установка Docker, скелет приложения.
-- [ ] Архитектура backend (структура Go-проекта, схема БД, миграции).
-- [ ] Telegram-бот, веб-интерфейс, деплой через NPM.
+- [x] Архитектура зафиксирована (ADR-001: модель Telegram Mini App), ТЗ синхронизировано.
+- [x] LXC 109 создан (Ubuntu 24.04).
+- [ ] Разработка переходит в **Claude Code** (код backend/frontend в репозитории).
+- [ ] Инфра: фикс Docker-в-LXC (`109.conf` → `lxc.apparmor.profile: unconfined`), установка Docker.
+- [ ] Backend: структура Go-проекта, схема БД, миграции, валидация initData, сессии.
+- [ ] Frontend: Mini App (SPA). Бот: кнопка-лаунчер в @BotFather. Уведомления через облачный n8n.
+- [ ] Деплой через NPM (домен → `10.10.10.9:<APP_PORT>`, Let's Encrypt).
