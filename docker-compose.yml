@@ -1,0 +1,8 @@
+services:
+  web:
+    build: ./frontend
+    container_name: fp-web
+    ports:
+      # 10.10.10.9:8080 → контейнер :80. Наружу проксирует NPM (fp.antifreeze.dev).
+      - "8080:80"
+    restart: unless-stopped
