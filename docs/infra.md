@@ -75,21 +75,35 @@ docker --version && docker compose version
 Внешний прокси уже есть в Proxmox — отдельный **Nginx Proxy Manager** (CT, `10.10.10.2`).
 Свой nginx внутри compose для MVP не нужен: NPM сам терминирует TLS и проксирует домен на контейнер.
 
-Proxy Host в NPM (когда дойдём до публикации):
-- Domain: `<домен приложения>`, scheme `http`, forward `10.10.10.9:<APP_PORT>`.
-- SSL: Let's Encrypt, Force SSL ON (после выпуска cert), HTTP/2 ON.
-- Cloudflare DNS на этапе выпуска LE-сертификата держать **серым облаком** (DNS only) — оранжевое
-  ломает HTTP-01 challenge.
+Proxy Host в NPM — ✅ **настроено** (2026-06-29):
+- Domain: **`fp.antifreeze.dev`**, scheme `http`, forward **`10.10.10.9:8080`**.
+- SSL: **Let's Encrypt** (issuer YE1, действует до 27 Sep 2026), Force SSL + HTTP/2 ON, Websockets ON.
+- Cloudflare DNS: A-запись `fp.antifreeze.dev → 31.131.251.146`. На этапе выпуска LE-сертификата
+  держать **серым облаком** (DNS only) — оранжевое ломает HTTP-01 challenge.
 
 ## Стек приложения (по ТЗ, docs/spec.md)
 - Backend: Go (Telegram-бот + REST API), Telegram Bot API через `go-telegram-bot-api`.
 - БД: PostgreSQL (отдельный Docker volume), миграции — goose/golang-migrate/atlas.
-- Frontend: SPA (React/Vue/Svelte), статика отдаётся через backend или отдельный контейнер.
+- Frontend: **Vite + React + TypeScript** (SPA), статика собирается в Docker и отдаётся `nginx:alpine`.
 - Всё в Docker Compose внутри LXC 107; наружу — через NPM.
 
-## Деплой (черновик, детализируем при реализации)
-1. Зайти в контейнер через jump-host, поставить Docker + Compose.
-2. `git clone` репозитория (через agent forwarding или deploy-key).
-3. Секреты (`.env`, токен бота, креды БД) — **не из git**, завести на месте.
-4. `docker compose up -d --build`; volume для Postgres создать заранее.
-5. Прокинуть домен через NPM → `10.10.10.9:<APP_PORT>`, выпустить LE-сертификат.
+## Деплой
+
+Код в 107 лежит в **`/opt/family-planner`** (клон публичного репо по HTTPS — ключи не нужны).
+
+Первичный деплой (уже выполнен):
+```bash
+git clone --depth 1 https://github.com/EestiChameleon/family-planner.git /opt/family-planner
+cd /opt/family-planner && docker compose up -d --build
+docker builder prune -af   # диск 107 всего 4G — чистим build-кэш после сборки
+```
+
+Обновление после пуша в репо (с Mac):
+```bash
+ssh -i ~/.ssh/selectel_origin_base root@31.131.251.146 \
+  'pct exec 107 -- bash -lc "cd /opt/family-planner && git pull && docker compose up -d --build"'
+```
+
+TODO при появлении backend/БД:
+- Секреты (`.env`, токен бота, креды БД) — **не из git**, завести на месте в `/opt/family-planner/.env`.
+- Volume для Postgres создать заранее (или переиспользовать LXC 102 — см. открытый вопрос в architecture.md).

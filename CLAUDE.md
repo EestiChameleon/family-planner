@@ -75,7 +75,11 @@ ssh -J root@<PROXMOX_HOST_IP> root@10.10.10.9   # LXC 107, family-planner
 - [x] Коммиты запушены в origin (rebase поверх `Initial commit` с GitHub; ветка `main` отслеживает `origin/main`).
 - [x] Инфра: фикс Docker-в-LXC (`107.conf` → `lxc.apparmor.profile: unconfined`) **применён**;
       Docker **29.6.1** + Compose **v5.2.0** установлены, `docker run hello-world` — OK, сервис enabled+active.
-- [ ] Разработка переходит в **Claude Code** (код backend/frontend в репозитории).
+- [x] Разработка перешла в **Claude Code** (код в репозитории).
+- [x] **Первый вертикальный срез** задеплоен и проверен end-to-end (2026-06-29):
+      Vite React+TS SPA (лоадер-страница) → Docker/nginx на 107:8080 → NPM (LE-серт) →
+      **https://fp.antifreeze.dev**. Открывается и как Mini App, и как обычный сайт.
+- [x] Бот `@family_agenda_bot`: Menu Button → `https://fp.antifreeze.dev` (настроено в @BotFather).
 - [ ] Backend: структура Go-проекта, схема БД, миграции, валидация initData, сессии.
-- [ ] Frontend: Mini App (SPA). Бот: кнопка-лаунчер в @BotFather. Уведомления через облачный n8n.
-- [ ] Деплой через NPM (домен → `10.10.10.9:<APP_PORT>`, Let's Encrypt).
+- [ ] Frontend: заменить лоадер на реальный UI (задачи, календарь).
+- [ ] Уведомления через облачный n8n.
